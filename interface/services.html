@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Services Marketplace - Smart Services Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            padding: 20px 40px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            animation: slideDown 0.5s ease;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-100%); }
+            to { transform: translateY(0); }
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 15px;
+        }
+
+        .nav-link {
+            padding: 10px 20px;
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            text-decoration: none;
+            color: #666;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            border-color: #667eea;
+            color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .user-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .btn-logout {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-logout:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Search Section */
+        .search-section {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            margin-bottom: 40px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            animation: fadeIn 0.6s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .search-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .search-title {
+            font-size: 36px;
+            font-weight: 800;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .search-subtitle {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .search-container {
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 20px 60px 20px 25px;
+            border: 2px solid #e5e7eb;
+            border-radius: 15px;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-50%) scale(1.05);
+        }
+
+        /* Filters */
+        .filters {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 25px;
+            justify-content: center;
+        }
+
+        .filter-btn {
+            padding: 10px 20px;
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            color: #666;
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            border-color: #667eea;
+            color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        /* Services Grid */
+        .services-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .results-count {
+            color: #999;
+            font-size: 16px;
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 25px;
+            animation: fadeIn 0.8s ease;
+        }
+
+        .service-card {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .service-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .service-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+        }
+
+        .service-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .service-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .service-category {
+            display: inline-block;
+            padding: 6px 12px;
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+        }
+
+        .service-name {
+            font-size: 22px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .service-description {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .service-features {
+            margin-bottom: 20px;
+        }
+
+        .feature-tag {
+            display: inline-block;
+            padding: 5px 12px;
+            background: #f5f7fa;
+            color: #666;
+            border-radius: 8px;
+            font-size: 12px;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+
+        .service-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 20px;
+            border-top: 2px solid #f5f7fa;
+        }
+
+        .service-rating {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stars {
+            color: #fbbf24;
+            font-size: 16px;
+        }
+
+        .rating-count {
+            color: #999;
+            font-size: 13px;
+        }
+
+        .service-price {
+            font-size: 24px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .btn-subscribe {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 16px;
+            margin-top: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-subscribe:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .loading-spinner {
+            text-align: center;
+            padding: 60px;
+            color: #667eea;
+            font-size: 18px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 100px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        /* Recommendations Section */
+        .recommendations {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .recommendations-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">🛍️ Services Marketplace</div>
+        <div class="user-info">
+            <div class="nav-links">
+                <a href="dashboard.html" class="nav-link">📊 Dashboard</a>
+                <a href="login.html" class="nav-link">🏠 Home</a>
+            </div>
+            <div class="user-avatar" id="userAvatar">?</div>
+            <button class="btn-logout" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="search-section">
+            <div class="search-header">
+                <h1 class="search-title">🔍 Discover Smart Services</h1>
+                <p class="search-subtitle">Powered by Elasticsearch full-text search & Neo4j recommendations</p>
+            </div>
+            <div class="search-container">
+                <input type="text" class="search-box" id="searchInput" placeholder="Search for services (e.g., energy monitoring, security, automation)..." />
+                <button class="search-btn" onclick="searchServices()">Search</button>
+            </div>
+            <div class="filters">
+                <button class="filter-btn active" data-category="" onclick="filterCategory(this, '')">All</button>
+                <button class="filter-btn" data-category="energy" onclick="filterCategory(this, 'energy')">⚡ Energy</button>
+                <button class="filter-btn" data-category="security" onclick="filterCategory(this, 'security')">🔒 Security</button>
+                <button class="filter-btn" data-category="automation" onclick="filterCategory(this, 'automation')">🤖 Automation</button>
+                <button class="filter-btn" data-category="monitoring" onclick="filterCategory(this, 'monitoring')">📊 Monitoring</button>
+            </div>
+        </div>
+
+        <!-- Recommendations Section -->
+        <div class="recommendations" id="recommendationsSection">
+            <h2 class="recommendations-title">✨ Recommended For You</h2>
+            <div id="recommendationsContainer">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Loading personalized recommendations from Neo4j...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- All Services Section -->
+        <div>
+            <div class="services-header">
+                <h2 class="section-title">📦 All Services</h2>
+                <span class="results-count" id="resultsCount">Loading...</span>
+            </div>
+            <div id="servicesContainer">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Loading services from MongoDB...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000/api';
+        let token = localStorage.getItem('token');
+        let user = JSON.parse(localStorage.getItem('user') || '{}');
+        let currentCategory = '';
+
+        // Check authentication
+        if (!token) {
+            window.location.href = 'login.html';
+        }
+
+        // Display user info
+        document.getElementById('userAvatar').textContent = (user.firstName || 'U')[0].toUpperCase();
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+        }
+
+        // Search services using Elasticsearch
+        async function searchServices() {
+            const query = document.getElementById('searchInput').value;
+            const container = document.getElementById('servicesContainer');
+            
+            container.innerHTML = `
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Searching with Elasticsearch...</p>
+                </div>
+            `;
+
+            try {
+                const url = `${API_URL}/services/search?q=${encodeURIComponent(query)}${currentCategory ? '&category=' + currentCategory : ''}`;
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+
+                displayServices(data.data || []);
+            } catch (error) {
+                console.error('Error searching services:', error);
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">❌</div>
+                        <h3>Search Failed</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Filter by category
+        function filterCategory(btn, category) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentCategory = category;
+            
+            if (document.getElementById('searchInput').value) {
+                searchServices();
+            } else {
+                loadAllServices();
+            }
+        }
+
+        // Load all services
+        async function loadAllServices() {
+            const container = document.getElementById('servicesContainer');
+            
+            try {
+                const url = `${API_URL}/services/search?${currentCategory ? 'category=' + currentCategory : ''}`;
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+
+                displayServices(data.data || []);
+            } catch (error) {
+                console.error('Error loading services:', error);
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">❌</div>
+                        <h3>Error loading services</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Display services
+        function displayServices(services) {
+            const container = document.getElementById('servicesContainer');
+            document.getElementById('resultsCount').textContent = `${services.length} services found`;
+
+            if (services.length > 0) {
+                container.innerHTML = `
+                    <div class="services-grid">
+                        ${services.map(service => createServiceCard(service)).join('')}
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔍</div>
+                        <h3>No services found</h3>
+                        <p>Try a different search or category</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Create service card HTML
+        function createServiceCard(service) {
+            const stars = '⭐'.repeat(Math.floor(service.rating || 0));
+            return `
+                <div class="service-card">
+                    <div class="service-icon">${getCategoryIcon(service.category)}</div>
+                    <span class="service-category">${service.category}</span>
+                    <h3 class="service-name">${service.name}</h3>
+                    <p class="service-description">${service.description}</p>
+                    <div class="service-features">
+                        ${(service.features || []).slice(0, 3).map(f => `<span class="feature-tag">${f}</span>`).join('')}
+                    </div>
+                    <div class="service-footer">
+                        <div class="service-rating">
+                            <span class="stars">${stars}</span>
+                            <span class="rating-count">${service.rating || 0}</span>
+                        </div>
+                        <div class="service-price">${formatPrice(service.pricing)}</div>
+                    </div>
+                    <button class="btn-subscribe" onclick="subscribeToService('${service._id}', '${service.name}')">
+                        Subscribe Now
+                    </button>
+                </div>
+            `;
+        }
+
+        function getCategoryIcon(category) {
+            const icons = {
+                'energy': '⚡',
+                'security': '🔒',
+                'automation': '🤖',
+                'monitoring': '📊',
+                'analytics': '📈',
+                'maintenance': '🔧'
+            };
+            return icons[category] || '📦';
+        }
+
+        function formatPrice(pricing) {
+            if (pricing.model === 'free') return 'Free';
+            if (pricing.model === 'freemium') return 'Freemium';
+            return `$${pricing.amount}/${pricing.interval}`;
+        }
+
+        // Subscribe to service
+        async function subscribeToService(serviceId, serviceName) {
+            try {
+                const response = await fetch(`${API_URL}/services/${serviceId}/subscribe`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(`✅ Successfully subscribed to ${serviceName}!\n\nThis creates a relationship in Neo4j for personalized recommendations.`);
+                } else {
+                    alert(`❌ ${data.message}`);
+                }
+            } catch (error) {
+                console.error('Error subscribing:', error);
+                alert('❌ Subscription failed: ' + error.message);
+            }
+        }
+
+        // Load recommendations from Neo4j
+        async function loadRecommendations() {
+            const container = document.getElementById('recommendationsContainer');
+            
+            try {
+                const response = await fetch(`${API_URL}/services/recommendations/personalized`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+
+                if (data.success && data.data && data.data.length > 0) {
+                    container.innerHTML = `
+                        <div class="services-grid">
+                            ${data.data.slice(0, 3).map(service => createServiceCard(service)).join('')}
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('recommendationsSection').style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error loading recommendations:', error);
+                document.getElementById('recommendationsSection').style.display = 'none';
+            }
+        }
+
+        // Search on Enter key
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchServices();
+            }
+        });
+
+        // Load data on page load
+        loadAllServices();
+        loadRecommendations();
+    </script>
+</body>
+</html>
