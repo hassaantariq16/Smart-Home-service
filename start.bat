@@ -35,8 +35,9 @@ if %ERRORLEVEL% NEQ 0 (
 echo   - All 5 databases starting...
 echo.
 
-echo [3/6] Waiting for databases to initialize (60 seconds)...
-timeout /t 60 /nobreak >nul
+echo [3/6] Waiting for databases to initialize (120 seconds)...
+echo   Note: Cassandra and Neo4j may take 2-3 minutes to fully start
+timeout /t 120 /nobreak >nul
 echo   - Databases should be ready now
 echo.
 
@@ -78,8 +79,10 @@ echo.
 echo Starting backend server...
 echo Server will be available at: http://localhost:3000
 echo.
+echo Opening browser...
 echo Press Ctrl+C to stop the server
 echo ============================================================
 echo.
 
+start http://localhost:3000
 call npm run dev

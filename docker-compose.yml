@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   mongodb:
     image: mongo:7.0
@@ -33,6 +31,9 @@ services:
       CASSANDRA_CLUSTER_NAME: SmartPlatformCluster
       CASSANDRA_DC: datacenter1
       CASSANDRA_ENDPOINT_SNITCH: GossipingPropertyFileSnitch
+      CASSANDRA_NUM_TOKENS: 256
+      MAX_HEAP_SIZE: 512M
+      HEAP_NEWSIZE: 128M
     volumes:
       - cassandra_data:/var/lib/cassandra
     networks:

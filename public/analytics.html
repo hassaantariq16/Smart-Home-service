@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - Smart Home Platform</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">🏠</div>
+            <h3>Smart Home</h3>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="dashboard.html" class="nav-item">
+                <span class="nav-icon">📊</span><span>Dashboard</span>
+            </a>
+            <a href="devices.html" class="nav-item">
+                <span class="nav-icon">💡</span><span>Devices</span>
+            </a>
+            <a href="services.html" class="nav-item">
+                <span class="nav-icon">🛍️</span><span>Services</span>
+            </a>
+            <a href="analytics.html" class="nav-item active">
+                <span class="nav-icon">📈</span><span>Analytics</span>
+            </a>
+            <a href="profile.html" class="nav-item">
+                <span class="nav-icon">👤</span><span>Profile</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <button id="logout-btn" class="btn btn-secondary" style="width: 100%;">
+                <span>🚪</span> Logout
+            </button>
+        </div>
+    </aside>
+
+    <div class="main-content">
+        <header class="topbar">
+            <div class="topbar-left">
+                <h1>Analytics & Insights</h1>
+                <div class="breadcrumb">
+                    <span class="text-muted">Home</span>
+                    <span class="text-muted">/</span>
+                    <span>Analytics</span>
+                </div>
+            </div>
+            <div class="topbar-right">
+                <div class="filters">
+                    <button class="filter-btn active" data-period="24h">24 Hours</button>
+                    <button class="filter-btn" data-period="7d">7 Days</button>
+                    <button class="filter-btn" data-period="30d">30 Days</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="content-area">
+            <!-- Database Indicator -->
+            <div class="db-badge"
+                style="background: #1287B120; color: #1287B1; border: 1px solid #1287B140; margin-bottom: var(--space-6);">
+                📊 Cassandra - Time-series analytics from historical IoT data
+            </div>
+
+            <!-- Select Device -->
+            <div class="glass-card" style="margin-bottom: var(--space-8);">
+                <h3 style="margin-bottom: var(--space-4);">Select Device to Analyze</h3>
+                <select id="device-select" class="form-select">
+                    <option value="">Loading devices...</option>
+                </select>
+            </div>
+
+            <!-- Analytics Stats -->
+            <div class="stats-grid" id="analytics-stats" style="display: none;">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(245,158,11,0.2); color: var(--color-accent);">🌡️
+                    </div>
+                    <div class="stat-value" id="avg-temp">--</div>
+                    <div class="stat-label">Avg Temperature</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(59,130,246,0.2); color: var(--color-info);">💧</div>
+                    <div class="stat-value" id="avg-humidity">--</div>
+                    <div class="stat-label">Avg Humidity</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(16,185,129,0.2); color: var(--color-secondary);">⚡
+                    </div>
+                    <div class="stat-value" id="total-power">--</div>
+                    <div class="stat-label">Total Power (kWh)</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(99,102,241,0.2); color: var(--color-primary);">📊
+                    </div>
+                    <div class="stat-value" id="total-readings">--</div>
+                    <div class="stat-label">Total Readings</div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div id="charts-section" style="display: none;">
+                <div class="glass-card" style="margin-top: var(--space-8);">
+                    <h3 style="margin-bottom: var(--space-4);">Temperature Over Time</h3>
+                    <canvas id="temperature-chart" style="height: 300px;"></canvas>
+                </div>
+
+                <div class="glass-card" style="margin-top: var(--space-6);">
+                    <h3 style="margin-bottom: var(--space-4);">Humidity Over Time</h3>
+                    <canvas id="humidity-chart" style="height: 300px;"></canvas>
+                </div>
+
+                <div class="glass-card" style="margin-top: var(--space-6);">
+                    <h3 style="margin-bottom: var(--space-4);">Power Consumption</h3>
+                    <canvas id="power-chart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div id="empty-state" class="glass-card" style="text-align: center; padding: var(--space-12);">
+                <div style="font-size: 80px; margin-bottom: var(--space-4);">📊</div>
+                <h3 style="margin-bottom: var(--space-2);">Select a device to view analytics</h3>
+                <p class="text-muted">Choose a device from the dropdown above to see detailed time-series data</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/ui.js"></script>
+
+    <script>
+        let currentPeriod = '24h';
+        let temperatureChart = null;
+        let humidityChart = null;
+        let powerChart = null;
+
+        async function loadDevices() {
+            try {
+                const response = await api.getDevices();
+                const select = document.getElementById('device-select');
+
+                if (response.success && response.data) {
+                    select.innerHTML = '<option value="">Select a device...</option>';
+
+                    response.data.forEach(device => {
+                        const option = document.createElement('option');
+                        option.value = device.deviceId;
+                        option.textContent = `${device.name} (${device.type})`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load devices:', error);
+            }
+        }
+
+        async function loadAnalytics(deviceId, period) {
+            if (!deviceId) {
+                document.getElementById('analytics-stats').style.display = 'none';
+                document.getElementById('charts-section').style.display = 'none';
+                document.getElementById('empty-state').style.display = 'block';
+                return;
+            }
+
+            try {
+                UI.showLoading('Loading analytics...');
+
+                const response = await api.getDeviceAnalytics(deviceId, period);
+
+                UI.hideLoading();
+
+                if (response.success && response.data) {
+                    const data = response.data;
+
+                    // Show sections
+                    document.getElementById('analytics-stats').style.display = 'grid';
+                    document.getElementById('charts-section').style.display = 'block';
+                    document.getElementById('empty-state').style.display = 'none';
+
+                    // Update stats
+                    document.getElementById('avg-temp').textContent =
+                        data.temperature?.avg ? `${data.temperature.avg.toFixed(1)}°C` : '--';
+                    document.getElementById('avg-humidity').textContent =
+                        data.humidity?.avg ? `${data.humidity.avg.toFixed(1)}%` : '--';
+                    document.getElementById('total-power').textContent =
+                        data.powerConsumption?.total ? `${(data.powerConsumption.total / 1000).toFixed(2)}` : '--';
+                    document.getElementById('total-readings').textContent =
+                        data.totalReadings ? UI.formatNumber(data.totalReadings) : '--';
+
+                    // Render charts
+                    renderCharts(data);
+
+                    UI.showToast(`Loaded ${data.totalReadings || 0} readings from Cassandra`, 'success');
+                }
+            } catch (error) {
+                UI.hideLoading();
+                console.error('Failed to load analytics:', error);
+                UI.showToast('Failed to load analytics', 'error');
+            }
+        }
+
+        function renderCharts(analyticsData) {
+            const chartData = ChartUtils.formatDeviceAnalytics(analyticsData);
+
+            // Destroy existing charts
+            ChartUtils.destroyChart(temperatureChart);
+            ChartUtils.destroyChart(humidityChart);
+            ChartUtils.destroyChart(powerChart);
+
+            // Create new charts
+            if (chartData.temperature.values.length > 0) {
+                temperatureChart = ChartUtils.createTimeSeriesChart(
+                    'temperature-chart',
+                    chartData.temperature,
+                    'Temperature (°C)',
+                    '#F59E0B'
+                );
+            }
+
+            if (chartData.humidity.values.length > 0) {
+                humidityChart = ChartUtils.createTimeSeriesChart(
+                    'humidity-chart',
+                    chartData.humidity,
+                    'Humidity (%)',
+                    '#3B82F6'
+                );
+            }
+
+            if (chartData.power.values.length > 0) {
+                powerChart = ChartUtils.createTimeSeriesChart(
+                    'power-chart',
+                    chartData.power,
+                    'Power (W)',
+                    '#10B981'
+                );
+            }
+        }
+
+        // Device select handler
+        document.getElementById('device-select').addEventListener('change', (e) => {
+            const deviceId = e.target.value;
+            loadAnalytics(deviceId, currentPeriod);
+        });
+
+        // Period filter handlers
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                currentPeriod = btn.dataset.period;
+                const deviceId = document.getElementById('device-select').value;
+                if (deviceId) {
+                    loadAnalytics(deviceId, currentPeriod);
+                }
+            });
+        });
+
+        // Logout
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+            await api.logout();
+            window.location.href = '/login.html';
+        });
+
+        // Initialize
+        loadDevices();
+    </script>
+</body>
+
+</html>

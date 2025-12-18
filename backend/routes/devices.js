@@ -4,15 +4,16 @@ const User = require('../models/User');
 const { authenticate } = require('../middleware/auth');
 const { getRedisClient } = require('../config/redis');
 const { getCassandraClient } = require('../config/cassandra');
+const { validate, registerDeviceSchema, deviceReadingSchema } = require('../middleware/validation');
 
 const router = express.Router();
 
 // Get all devices for user
 router.get('/', authenticate, async (req, res) => {
   try {
-    const devices = await Device.find({ 
+    const devices = await Device.find({
       userId: req.user.userId,
-      isActive: true 
+      isActive: true
     });
 
     res.json({
@@ -31,7 +32,7 @@ router.get('/', authenticate, async (req, res) => {
 });
 
 // Register new device
-router.post('/register', authenticate, async (req, res) => {
+router.post('/register', authenticate, validate(registerDeviceSchema), async (req, res) => {
   try {
     const { deviceId, name, type, manufacturer, model, location } = req.body;
 
@@ -135,7 +136,7 @@ router.get('/:deviceId', authenticate, async (req, res) => {
 });
 
 // Post device reading
-router.post('/:deviceId/readings', authenticate, async (req, res) => {
+router.post('/:deviceId/readings', authenticate, validate(deviceReadingSchema), async (req, res) => {
   try {
     const { deviceId } = req.params;
     const { values } = req.body;
@@ -175,14 +176,14 @@ router.post('/:deviceId/readings', authenticate, async (req, res) => {
     // 3. Store in Cassandra (historical data)
     const cassandra = getCassandraClient();
     const date = timestamp.toISOString().split('T')[0];
-    
+
     const query = `
       INSERT INTO device_readings (
         device_id, date, timestamp, 
         temperature, humidity, power_consumption, status
       ) VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
-    
+
     await cassandra.execute(query, [
       deviceId,
       date,
@@ -242,18 +243,39 @@ router.get('/:deviceId/history', authenticate, async (req, res) => {
 
     // Query Cassandra for historical data
     const cassandra = getCassandraClient();
-    const start = startDate || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    const end = endDate || new Date().toISOString().split('T')[0];
+    const start = startDate ? new Date(startDate) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const end = endDate ? new Date(endDate) : new Date();
 
-    const query = `
-      SELECT * FROM device_readings 
-      WHERE device_id = ? AND date >= ? AND date <= ?
-      LIMIT ?
-    `;
+    // Generate array of dates to query (Cassandra partition key requires specific dates)
+    const dates = [];
+    const current = new Date(start);
+    while (current <= end) {
+      dates.push(current.toISOString().split('T')[0]);
+      current.setDate(current.getDate() + 1);
+    }
 
-    const result = await cassandra.execute(query, [deviceId, start, end, parseInt(limit)], { prepare: true });
+    // Query each date individually and combine results
+    const allReadings = [];
+    for (const date of dates) {
+      const query = `
+        SELECT * FROM device_readings 
+        WHERE device_id = ? AND date = ?
+      `;
 
-    const readings = result.rows.map(row => ({
+      try {
+        const result = await cassandra.execute(query, [deviceId, date], { prepare: true });
+        allReadings.push(...result.rows);
+      } catch (dateError) {
+        // Skip dates with no data
+        console.log(`No data for ${deviceId} on ${date}`);
+      }
+    }
+
+    // Sort by timestamp descending and limit
+    allReadings.sort((a, b) => b.timestamp - a.timestamp);
+    const limitedReadings = allReadings.slice(0, parseInt(limit));
+
+    const readings = limitedReadings.map(row => ({
       timestamp: row.timestamp,
       temperature: row.temperature,
       humidity: row.humidity,

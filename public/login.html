@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Smart Home Platform</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body {
+      overflow: hidden;
+    }
+
+    .login-container {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .login-left {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-8);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .login-left::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, var(--color-primary) 0%, transparent 70%);
+      opacity: 0.1;
+      animation: rotate 30s linear infinite;
+    }
+
+    @keyframes rotate {
+      to { transform: rotate(360deg); }
+    }
+
+    .login-right {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, rgba(99,102,241,0.05) 0%, rgba(16,185,129,0.05) 100%);
+      padding: var(--space-8);
+      border-left: 1px solid var(--color-border);
+    }
+
+    .login-card {
+      background: var(--color-surface);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-2xl);
+      padding: var(--space-10);
+      width: 100%;
+      max-width: 450px;
+      box-shadow: var(--shadow-xl);
+    }
+
+    .login-header {
+      text-align: center;
+      margin-bottom: var(--space-8);
+    }
+
+    .login-logo {
+      font-size: var(--text-4xl);
+      margin-bottom: var(--space-2);
+    }
+
+    .login-title {
+      font-size: var(--text-3xl);
+      margin-bottom: var(--space-2);
+      background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .login-subtitle {
+      color: var(--color-text-secondary);
+      font-size: var(--text-base);
+    }
+
+    .brand-info {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+    }
+
+    .brand-logo {
+      font-size: 120px;
+      margin-bottom: var(--space-4);
+    }
+
+    .brand-title {
+      font-size: var(--text-4xl);
+      margin-bottom: var(--space-4);
+    }
+
+    .brand-features {
+      margin-top: var(--space-8);
+      text-align: left;
+      max-width: 500px;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      padding: var(--space-4);
+      margin-bottom: var(--space-3);
+      background: var(--color-surface);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--color-border);
+    }
+
+    .feature-icon {
+      font-size: var(--text-3xl);
+    }
+
+    .feature-text h4 {
+      font-size: var(--text-lg);
+      margin-bottom: var(--space-1);
+    }
+
+    .feature-text p {
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+    }
+
+    .error-message {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--color-danger);
+      color: var(--color-danger);
+      padding: var(--space-3);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-4);
+      font-size: var(--text-sm);
+      display: none;
+    }
+
+    .error-message.show {
+      display: block;
+    }
+
+    @media (max-width: 968px) {
+      .login-left {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <!-- Left Side - Branding -->
+    <div class="login-left">
+      <div class="brand-info">
+        <div class="brand-logo">🏠</div>
+        <h1 class="brand-title">Smart Home Platform</h1>
+        <p class="login-subtitle">Control your entire home from anywhere</p>
+        
+        <div class="brand-features">
+          <div class="feature-item">
+            <div class="feature-icon">⚡</div>
+            <div class="feature-text">
+              <h4>Real-time Control</h4>
+              <p>Monitor and control devices instantly</p>
+            </div>
+          </div>
+          
+          <div class="feature-item">
+            <div class="feature-icon">📊</div>
+            <div class="feature-text">
+              <h4>Energy Analytics</h4>
+              <p>Track consumption and save money</p>
+            </div>
+          </div>
+          
+          <div class="feature-item">
+            <div class="feature-icon">🔒</div>
+            <div class="feature-text">
+              <h4>Secure & Private</h4>
+              <p>Enterprise-grade security</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Side - Login Form -->
+    <div class="login-right">
+      <div class="login-card fade-in">
+        <div class="login-header">
+          <div class="login-logo">🔐</div>
+          <h2 class="login-title">Welcome Back</h2>
+          <p class="login-subtitle">Sign in to your account</p>
+        </div>
+
+        <div id="error-message" class="error-message"></div>
+
+        <form id="login-form">
+          <div class="form-group">
+            <label class="form-label" for="email">Email Address</label>
+            <input 
+              type="email" 
+              id="email" 
+              class="form-input" 
+              placeholder="john@example.com"
+              required
+              autocomplete="email"
+            >
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="password">Password</label>
+            <input 
+              type="password" 
+              id="password" 
+              class="form-input" 
+              placeholder="••••••••"
+              required
+              autocomplete="current-password"
+            >
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: var(--space-4);">
+            Sign In
+          </button>
+        </form>
+
+        <div style="margin-top: var(--space-6); text-align: center;">
+          <p class="text-secondary" style="font-size: var(--text-sm);">
+            Demo credentials: <code style="background: var(--color-surface); padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm);">john@example.com</code> / <code style="background: var(--color-surface); padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm);">password123</code>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  
+  <script>
+    const form = document.getElementById('login-form');
+    const errorMessage = document.getElementById('error-message');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      // Hide previous errors
+      errorMessage.classList.remove('show');
+      
+      // Disable button
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const originalText = submitBtn.textContent;
+      submitBtn.textContent = 'Signing in...';
+      submitBtn.disabled = true;
+
+      try {
+        const response = await api.login(email, password);
+        
+        if (response.success) {
+          // Redirect to dashboard
+          window.location.href = '/dashboard.html';
+        } else {
+          throw new Error(response.message || 'Login failed');
+        }
+      } catch (error) {
+        errorMessage.textContent = error.message || 'Login failed. Please check your credentials.';
+        errorMessage.classList.add('show');
+        
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

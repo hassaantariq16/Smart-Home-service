@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Devices - Smart Home Platform</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">🏠</div>
+            <h3>Smart Home</h3>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="dashboard.html" class="nav-item">
+                <span class="nav-icon">📊</span><span>Dashboard</span>
+            </a>
+            <a href="devices.html" class="nav-item active">
+                <span class="nav-icon">💡</span><span>Devices</span>
+            </a>
+            <a href="services.html" class="nav-item">
+                <span class="nav-icon">🛍️</span><span>Services</span>
+            </a>
+            <a href="analytics.html" class="nav-item">
+                <span class="nav-icon">📈</span><span>Analytics</span>
+            </a>
+            <a href="profile.html" class="nav-item">
+                <span class="nav-icon">👤</span><span>Profile</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <button id="logout-btn" class="btn btn-secondary" style="width: 100%;">
+                <span>🚪</span> Logout
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <header class="topbar">
+            <div class="topbar-left">
+                <h1>My Devices</h1>
+                <div class="breadcrumb">
+                    <span class="text-muted">Home</span>
+                    <span class="text-muted">/</span>
+                    <span>Devices</span>
+                </div>
+            </div>
+            <div class="topbar-right">
+                <div class="connection-status" id="ws-status">
+                    <span class="status-badge status-offline">Connecting...</span>
+                </div>
+                <button class="btn btn-primary" onclick="UI.showToast('Feature coming soon!', 'info')">
+                    ➕ Add Device
+                </button>
+            </div>
+        </header>
+
+        <div class="content-area">
+            <!-- Database Indicators -->
+            <div style="display: flex; gap: var(--space-3); margin-bottom: var(--space-6); flex-wrap: wrap;">
+                <div class="db-badge" style="background: #47A24820; color: #47A248; border: 1px solid #47A24840;">
+                    🍃 MongoDB - Device Config
+                </div>
+                <div class="db-badge" style="background: #DC382D20; color: #DC382D; border: 1px solid #DC382D40;">
+                    ⚡ Redis - Real-time Status
+                </div>
+                <div class="db-badge" style="background: #1287B120; color: #1287B1; border: 1px solid #1287B140;">
+                    📊 Cassandra - Sensor Data
+                </div>
+            </div>
+
+            <!-- Filter Bar -->
+            <div style="margin-bottom: var(--space-8);">
+                <div class="filters">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="light">💡 Lights</button>
+                    <button class="filter-btn" data-filter="thermostat">🌡️ Thermostats</button>
+                    <button class="filter-btn" data-filter="camera">📹 Cameras</button>
+                    <button class="filter-btn" data-filter="lock">🔒 Locks</button>
+                    <button class="filter-btn" data-filter="sensor">📡 Sensors</button>
+                </div>
+            </div>
+
+            <!-- Devices Grid -->
+            <div class="devices-grid" id="devices-grid">
+                <div class="skeleton skeleton-card"></div>
+                <div class="skeleton skeleton-card"></div>
+                <div class="skeleton skeleton-card"></div>
+            </div>
+
+            <!-- Device Detail Modal -->
+            <div id="device-modal" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/websocket.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/ui.js"></script>
+
+    <script>
+        let allDevices = [];
+        let currentFilter = 'all';
+        let deviceChart = null;
+
+        async function loadDevices() {
+            try {
+                const response = await api.getDevices();
+
+                if (response.success && response.data) {
+                    allDevices = response.data;
+                    renderDevices(allDevices);
+
+                    // Subscribe to all devices
+                    allDevices.forEach(device => {
+                        ws.subscribeToDevice(device.deviceId);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load devices:', error);
+                UI.showToast('Failed to load devices', 'error');
+            }
+        }
+
+        function renderDevices(devices) {
+            const grid = document.getElementById('devices-grid');
+            grid.innerHTML = '';
+
+            if (devices.length === 0) {
+                grid.innerHTML = '<p class="text-muted">No devices found.</p>';
+                return;
+            }
+
+            devices.forEach(device => {
+                const card = createDeviceCard(device);
+                grid.appendChild(card);
+            });
+        }
+
+        function createDeviceCard(device) {
+            const card = document.createElement('div');
+            card.className = 'device-card';
+
+            const isOnline = device.status?.online || false;
+            const icon = UI.getDeviceIcon(device.type);
+            const statusBadge = UI.getStatusBadge(isOnline);
+
+            card.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--space-4);">
+          <span style="font-size: 48px;">${icon}</span>
+          ${statusBadge}
+        </div>
+        <h3 style="margin-bottom: var(--space-2);">${device.name}</h3>
+        <p class="text-muted" style="font-size: var(--text-sm); margin-bottom: var(--space-4);">
+          ${device.location?.room || 'Unknown'} • ${device.location?.floor || 'Unknown floor'}
+        </p>
+        <div style="background: rgba(255,255,255,0.02); padding: var(--space-3); border-radius: var(--radius-md); margin-bottom: var(--space-4);">
+          <div style="font-size: var(--text-xs); color: var(--color-text-tertiary); margin-bottom: var(--space-2);">DEVICE INFO</div>
+          <div style="font-size: var(--text-sm);">
+            ${device.manufacturer || 'Unknown'} ${device.model || ''}
+          </div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: var(--text-xs); color: var(--color-text-tertiary);">
+            ${device.status?.lastSeen ? UI.formatDate(device.status.lastSeen) : 'Never'}
+          </span>
+          <button class="btn btn-sm btn-ghost" onclick="showDeviceDetails('${device.deviceId}')">
+            View Details →
+          </button>
+        </div>
+      `;
+
+            return card;
+        }
+
+        async function showDeviceDetails(deviceId) {
+            try {
+                UI.showLoading('Loading device details...');
+
+                const response = await api.getDevice(deviceId);
+                const device = response.data;
+
+                // Get analytics
+                const analyticsResponse = await api.getDeviceAnalytics(deviceId, '7d');
+
+                UI.hideLoading();
+
+                // Create modal content
+                const modalContent = `
+          <div class="device-header">
+            <div class="device-header-top">
+              <div class="device-header-info">
+                <span class="device-header-icon">${UI.getDeviceIcon(device.type)}</span>
+                <div class="device-header-details">
+                  <h1>${device.name}</h1>
+                  <div class="device-meta">
+                    <span>${UI.getStatusBadge(device.status?.online)}</span>
+                    <span>📍 ${device.location?.room}</span>
+                    <span>🏢 ${device.location?.floor}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="glass-card" style="margin-bottom: var(--space-6);">
+            <h3 style="margin-bottom: var(--space-4);">Time-Series Data (Cassandra)</h3>
+            <canvas id="device-detail-chart" style="height: 300px;"></canvas>
+          </div>
+        `;
+
+                UI.showModal(`Device: ${device.name}`, modalContent, [
+                    { label: 'Close', class: 'btn-secondary', onClick: 'document.querySelector(".modal-overlay").remove()' }
+                ]);
+
+                // Render chart if we have data
+                if (analyticsResponse.success && analyticsResponse.data) {
+                    const chartData = ChartUtils.formatDeviceAnalytics(analyticsResponse.data);
+                    setTimeout(() => {
+                        if (chartData.temperature.values.length > 0) {
+                            ChartUtils.createTimeSeriesChart('device-detail-chart', chartData.temperature, 'Temperature (°C)', '#F59E0B');
+                        }
+                    }, 100);
+                }
+            } catch (error) {
+                UI.hideLoading();
+                UI.showToast('Failed to load device details', 'error');
+            }
+        }
+
+        // Filter handlers
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                const filter = btn.dataset.filter;
+                if (filter === 'all') {
+                    renderDevices(allDevices);
+                } else {
+                    const filtered = allDevices.filter(d => d.type === filter);
+                    renderDevices(filtered);
+                }
+            });
+        });
+
+        // WebSocket status
+        ws.on('connection-status', (data) => {
+            const statusElement = document.getElementById('ws-status');
+            statusElement.innerHTML = data.connected
+                ? '<span class="status-badge status-online">Connected</span>'
+                : '<span class="status-badge status-offline">Disconnected</span>';
+        });
+
+        ws.on('device-reading', (data) => {
+            console.log('Device update:', data);
+            // Could update device card in real-time here
+        });
+
+        // Logout
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+            await api.logout();
+            window.location.href = '/login.html';
+        });
+
+        // Initialize
+        loadDevices();
+    </script>
+</body>
+
+</html>

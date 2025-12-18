@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Smart Home Platform</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">🏠</div>
+            <h3>Smart Home</h3>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="dashboard.html" class="nav-item active">
+                <span class="nav-icon">📊</span>
+                <span>Dashboard</span>
+            </a>
+            <a href="devices.html" class="nav-item">
+                <span class="nav-icon">💡</span>
+                <span>Devices</span>
+            </a>
+            <a href="services.html" class="nav-item">
+                <span class="nav-icon">🛍️</span>
+                <span>Services</span>
+            </a>
+            <a href="analytics.html" class="nav-item">
+                <span class="nav-icon">📈</span>
+                <span>Analytics</span>
+            </a>
+            <a href="profile.html" class="nav-item">
+                <span class="nav-icon">👤</span>
+                <span>Profile</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <button id="logout-btn" class="btn btn-secondary" style="width: 100%;">
+                <span>🚪</span> Logout
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Top Bar -->
+        <header class="topbar">
+            <div class="topbar-left">
+                <h1>Dashboard</h1>
+                <div class="breadcrumb">
+                    <span class="text-muted">Home</span>
+                    <span class="text-muted">/</span>
+                    <span>Dashboard</span>
+                </div>
+            </div>
+
+            <div class="topbar-right">
+                <div class="connection-status" id="ws-status">
+                    <span class="status-badge status-offline">Connecting...</span>
+                </div>
+                <div class="user-info">
+                    <div class="user-avatar">👤</div>
+                    <div class="user-details">
+                        <div class="user-name" id="user-name">Loading...</div>
+                        <div class="user-role">Premium Member</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Content -->
+        <div class="content-area">
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-icon"
+                            style="background: rgba(99,102,241,0.2); color: var(--color-primary);">💡</span>
+                        <div class="db-badge"
+                            style="background: #47A24820; color: #47A248; border: 1px solid #47A24840;">
+                            🍃 MongoDB
+                        </div>
+                    </div>
+                    <div class="stat-value" id="total-devices">0</div>
+                    <div class="stat-label">Total Devices</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-icon"
+                            style="background: rgba(16,185,129,0.2); color: var(--color-secondary);">⚡</span>
+                        <div class="db-badge"
+                            style="background: #1287B120; color: #1287B1; border: 1px solid #1287B140;">
+                            📊 Cassandra
+                        </div>
+                    </div>
+                    <div class="stat-value" id="energy-saved">0</div>
+                    <div class="stat-label">kWh Saved</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-icon"
+                            style="background: rgba(245,158,11,0.2); color: var(--color-accent);">💰</span>
+                        <div class="db-badge"
+                            style="background: #DC382D20; color: #DC382D; border: 1px solid #DC382D40;">
+                            ⚡ Redis
+                        </div>
+                    </div>
+                    <div class="stat-value" id="cost-savings">$0</div>
+                    <div class="stat-label">Cost Savings</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-icon"
+                            style="background: rgba(59,130,246,0.2); color: var(--color-info);">🛍️</span>
+                        <div class="db-badge"
+                            style="background: #008CC120; color: #008CC1; border: 1px solid #008CC140;">
+                            🔗 Neo4j
+                        </div>
+                    </div>
+                    <div class="stat-value" id="total-services">0</div>
+                    <div class="stat-label">Active Services</div>
+                </div>
+            </div>
+
+            <!-- Live Devices Section -->
+            <div class="section-header" style="margin-top: var(--space-8);">
+                <h2>Live Devices</h2>
+                <div style="display: flex; align-items: center; gap: var(--space-4);">
+                    <div class="db-badge" style="background: #DC382D20; color: #DC382D; border: 1px solid #DC382D40;">
+                        ⚡ Real-time via Redis & WebSocket
+                    </div>
+                </div>
+            </div>
+
+            <div class="devices-grid" id="devices-grid">
+                <!-- Devices will be loaded here -->
+                <div class="skeleton skeleton-card"></div>
+                <div class="skeleton skeleton-card"></div>
+                <div class="skeleton skeleton-card"></div>
+            </div>
+
+            <!-- Energy Chart Section -->
+            <div class="section-header" style="margin-top: var(--space-8);">
+                <h2>Energy Consumption (Last 7 Days)</h2>
+                <div class="db-badge" style="background: #1287B120; color: #1287B1; border: 1px solid #1287B140;">
+                    📊 Time-series from Cassandra
+                </div>
+            </div>
+
+            <div class="glass-card">
+                <canvas id="energy-chart" style="height: 300px;"></canvas>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="section-header" style="margin-top: var(--space-8);">
+                <h2>Recent Activity</h2>
+            </div>
+
+            <div class="glass-card">
+                <div class="activity-list" id="activity-list">
+                    <div class="skeleton skeleton-text"></div>
+                    <div class="skeleton skeleton-text"></div>
+                    <div class="skeleton skeleton-text"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/websocket.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/ui.js"></script>
+
+    <script>
+        // Dashboard Logic
+        let energyChart = null;
+
+        // Load dashboard data
+        async function loadDashboard() {
+            try {
+                // Get user info
+                const user = auth.getCurrentUser();
+                if (user) {
+                    document.getElementById('user-name').textContent = `${user.firstName} ${user.lastName}`;
+                }
+
+                // Get dashboard stats
+                const statsResponse = await api.getDashboardStats();
+                if (statsResponse.success) {
+                    const stats = statsResponse.data;
+
+                    // Animate counters
+                    UI.animateCounter(document.getElementById('total-devices'), 0, stats.totalDevices || 0);
+                    UI.animateCounter(document.getElementById('energy-saved'), 0, Math.floor(stats.energySaved || 0));
+                    UI.animateCounter(document.getElementById('total-services'), 0, stats.totalServices || 0);
+
+                    const costElement = document.getElementById('cost-savings');
+                    costElement.textContent = `$${(stats.costSavings || 0).toFixed(2)}`;
+                }
+
+                // Load devices
+                await loadDevices();
+
+                // Load mock energy chart data
+                loadEnergyChart();
+
+                UI.showToast('Dashboard loaded successfully!', 'success');
+            } catch (error) {
+                console.error('Dashboard load error:', error);
+                UI.showToast('Failed to load dashboard', 'error');
+            }
+        }
+
+        // Load devices
+        async function loadDevices() {
+            try {
+                const response = await api.getDevices();
+                const devicesGrid = document.getElementById('devices-grid');
+
+                if (response.success && response.data) {
+                    devicesGrid.innerHTML = '';
+
+                    const devices = response.data.slice(0, 6); // Show first 6
+
+                    if (devices.length === 0) {
+                        devicesGrid.innerHTML = '<p class="text-muted">No devices registered yet.</p>';
+                        return;
+                    }
+
+                    devices.forEach(device => {
+                        const deviceCard = createDeviceCard(device);
+                        devicesGrid.appendChild(deviceCard);
+
+                        // Subscribe to device updates
+                        ws.subscribeToDevice(device.deviceId);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load devices:', error);
+            }
+        }
+
+        // Create device card
+        function createDeviceCard(device) {
+            const card = document.createElement('div');
+            card.className = 'device-card';
+            card.onclick = () => window.location.href = `devices.html?device=${device.deviceId}`;
+
+            const isOnline = device.status?.online || false;
+            const icon = UI.getDeviceIcon(device.type);
+            const statusBadge = UI.getStatusBadge(isOnline);
+
+            card.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--space-3);">
+          <span style="font-size: var(--text-3xl);">${icon}</span>
+          ${statusBadge}
+        </div>
+        <h4 style="margin-bottom: var(--space-2);">${device.name}</h4>
+        <p class="text-muted" style="font-size: var(--text-sm); margin-bottom: var(--space-3);">
+          ${device.location?.room || 'Unknown'} • ${device.type}
+        </p>
+        <div class="device-readings" style="font-size: var(--text-sm); color: var(--color-text-secondary);">
+          Last seen: ${device.status?.lastSeen ? UI.formatDate(device.status.lastSeen) : 'Never'}
+        </div>
+      `;
+
+            return card;
+        }
+
+        // Load energy chart
+        function loadEnergyChart() {
+            const ctx = document.getElementById('energy-chart');
+            if (!ctx) return;
+
+            // Mock data for demonstration
+            const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            const values = [42, 38, 45, 35, 40, 33, 28];
+
+            energyChart = ChartUtils.createTimeSeriesChart('energy-chart', { labels, values }, 'Energy (kWh)');
+        }
+
+        // WebSocket handlers
+        ws.on('connection-status', (data) => {
+            const statusElement = document.getElementById('ws-status');
+            if (data.connected) {
+                statusElement.innerHTML = '<span class="status-badge status-online">Connected</span>';
+            } else {
+                statusElement.innerHTML = '<span class="status-badge status-offline">Disconnected</span>';
+            }
+        });
+
+        ws.on('device-reading', (data) => {
+            console.log('Real-time device update:', data);
+            UI.showToast(`Device ${data.deviceId} updated`, 'info', 2000);
+            // Could reload device card here
+        });
+
+        // Logout handler
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+            await api.logout();
+            window.location.href = '/login.html';
+        });
+
+        // Initialize dashboard
+        loadDashboard();
+    </script>
+</body>
+
+</html>

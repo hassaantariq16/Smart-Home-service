@@ -1,6 +1,7 @@
 const express = require('express');
 const User = require('../models/User');
 const { authenticate } = require('../middleware/auth');
+const { validate, updateProfileSchema } = require('../middleware/validation');
 
 const router = express.Router();
 
@@ -31,7 +32,7 @@ router.get('/profile', authenticate, async (req, res) => {
 });
 
 // Update user profile
-router.put('/profile', authenticate, async (req, res) => {
+router.put('/profile', authenticate, validate(updateProfileSchema), async (req, res) => {
   try {
     const updates = req.body;
     delete updates.password; // Don't allow password update here

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Services - Smart Home Platform</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/layout.css">
+</head>
+
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">🏠</div>
+            <h3>Smart Home</h3>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="dashboard.html" class="nav-item">
+                <span class="nav-icon">📊</span><span>Dashboard</span>
+            </a>
+            <a href="devices.html" class="nav-item">
+                <span class="nav-icon">💡</span><span>Devices</span>
+            </a>
+            <a href="services.html" class="nav-item active">
+                <span class="nav-icon">🛍️</span><span>Services</span>
+            </a>
+            <a href="analytics.html" class="nav-item">
+                <span class="nav-icon">📈</span><span>Analytics</span>
+            </a>
+            <a href="profile.html" class="nav-item">
+                <span class="nav-icon">👤</span><span>Profile</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <button id="logout-btn" class="btn btn-secondary" style="width: 100%;">
+                <span>🚪</span> Logout
+            </button>
+        </div>
+    </aside>
+
+    <div class="main-content">
+        <header class="topbar">
+            <div class="topbar-left">
+                <h1>Services Marketplace</h1>
+                <div class="breadcrumb">
+                    <span class="text-muted">Home</span>
+                    <span class="text-muted">/</span>
+                    <span>Services</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="content-area">
+            <!-- Search Section with Elasticsearch -->
+            <div class="search-section">
+                <div class="db-badge"
+                    style="background: #00557120; color: #005571; border: 1px solid #00557140; margin-bottom: var(--space-4);">
+                    🔍 Elasticsearch - Lightning-fast full-text search
+                </div>
+
+                <div class="search-bar">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" class="form-input" id="search-input"
+                        placeholder="Search services by name, category, or features..."
+                        style="padding-left: var(--space-12);">
+                </div>
+
+                <div class="filters">
+                    <button class="filter-btn active" data-category="">All Categories</button>
+                    <button class="filter-btn" data-category="automation">🤖 Automation</button>
+                    <button class="filter-btn" data-category="security">🔒 Security</button>
+                    <button class="filter-btn" data-category="energy">⚡ Energy</button>
+                    <button class="filter-btn" data-category="entertainment">🎬 Entertainment</button>
+                </div>
+
+                <div id="search-stats"
+                    style="margin-top: var(--space-3); font-size: var(--text-sm); color: var(--color-text-tertiary);">
+                </div>
+            </div>
+
+            <!-- Recommendations Section with Neo4j -->
+            <div style="margin-bottom: var(--space-8);">
+                <div class="section-header">
+                    <h2>Recommended For You</h2>
+                    <div class="db-badge" style="background: #008CC120; color: #008CC1; border: 1px solid #008CC140;">
+                        🔗 Neo4j - Collaborative Filtering
+                    </div>
+                </div>
+
+                <div id="recommendations-grid" class="services-grid">
+                    <div class="skeleton skeleton-card"></div>
+                    <div class="skeleton skeleton-card"></div>
+                    <div class="skeleton skeleton-card"></div>
+                </div>
+            </div>
+
+            <!-- All Services -->
+            <div class="section-header">
+                <h2>All Services</h2>
+                <div id="service-count" class="text-muted"></div>
+            </div>
+
+            <div class="services-grid" id="services-grid">
+                <div class="skeleton skeleton-card"></div>
+                <div class="skeleton skeleton-card"></div>
+                <div class="skeleton skeleton-card"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/ui.js"></script>
+
+    <script>
+        let searchTimeout = null;
+        let currentCategory = '';
+
+        // Load recommendations
+        async function loadRecommendations() {
+            try {
+                const response = await api.getRecommendations();
+
+                if (response.success && response.data) {
+                    const grid = document.getElementById('recommendations-grid');
+                    grid.innerHTML = '';
+
+                    const recommendations = response.data.slice(0, 3);
+
+                    if (recommendations.length === 0) {
+                        grid.innerHTML = '<p class="text-muted">No recommendations yet. Subscribe to services to get personalized suggestions!</p>';
+                        return;
+                    }
+
+                    recommendations.forEach(service => {
+                        grid.appendChild(createServiceCard(service, true));
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load recommendations:', error);
+            }
+        }
+
+        // Search services
+        async function searchServices(query = '', category = '') {
+            try {
+                const startTime = performance.now();
+
+                const response = await api.searchServices(query, {
+                    category: category,
+                    limit: 20
+                });
+
+                const endTime = performance.now();
+                const searchTime = (endTime - startTime).toFixed(0);
+
+                if (response.success) {
+                    const services = response.data;
+                    const count = response.count || services.length;
+
+                    // Update stats
+                    document.getElementById('search-stats').innerHTML =
+                        `Found <strong>${count}</strong> service${count !== 1 ? 's' : ''} in <strong>${searchTime}ms</strong> ⚡`;
+
+                    document.getElementById('service-count').textContent =
+                        `${count} service${count !== 1 ? 's' : ''}`;
+
+                    // Render services
+                    const grid = document.getElementById('services-grid');
+                    grid.innerHTML = '';
+
+                    if (services.length === 0) {
+                        grid.innerHTML = '<p class="text-muted">No services found. Try a different search.</p>';
+                        return;
+                    }
+
+                    services.forEach(service => {
+                        grid.appendChild(createServiceCard(service));
+                    });
+                }
+            } catch (error) {
+                console.error('Search failed:', error);
+                UI.showToast('Search failed', 'error');
+            }
+        }
+
+        // Create service card
+        function createServiceCard(service, isRecommendation = false) {
+            const card = document.createElement('div');
+            card.className = 'service-card';
+
+            const rating = service.rating?.average || 0;
+            const stars = '⭐'.repeat(Math.round(rating));
+
+            card.innerHTML = `
+        <div class="service-header">
+          <span class="service-icon">${getCategoryIcon(service.category)}</span>
+          <div class="service-rating">
+            ${stars} ${rating.toFixed(1)}
+          </div>
+        </div>
+        
+        <h3 class="service-title">${service.name}</h3>
+        <p class="service-description">${service.description}</p>
+        
+        ${service.features ? `
+          <div style="display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-4);">
+            ${service.features.slice(0, 3).map(f =>
+                `<span style="font-size: var(--text-xs); padding: var(--space-1) var(--space-2); background: var(--color-surface); border-radius: var(--radius-sm); color: var(--color-text-tertiary);">✓ ${f}</span>`
+            ).join('')}
+          </div>
+        ` : ''}
+        
+        <div class="service-footer">
+          <div>
+            <div class="service-price">
+              $${service.pricing?.amount || 0}
+            </div>
+            <div class="service-price-period">
+              per ${service.pricing?.billingCycle || 'month'}
+            </div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="subscribeToService('${service.serviceId}')">
+            Subscribe
+          </button>
+        </div>
+        
+        ${isRecommendation ? `
+          <div style="margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--color-border); font-size: var(--text-xs); color: var(--color-text-tertiary); text-align: center;">
+            🔗 Recommended based on your preferences
+          </div>
+        ` : ''}
+      `;
+
+            return card;
+        }
+
+        function getCategoryIcon(category) {
+            const icons = {
+                automation: '🤖',
+                security: '🔒',
+                energy: '⚡',
+                entertainment: '🎬',
+                health: '🏥',
+                other: '📦'
+            };
+            return icons[category] || icons.other;
+        }
+
+        async function subscribeToService(serviceId) {
+            try {
+                UI.showLoading('Subscribing...');
+
+                const response = await api.subscribeToService(serviceId);
+
+                UI.hideLoading();
+
+                if (response.success) {
+                    UI.showToast('Successfully subscribed! Neo4j graph updated.', 'success');
+                    // Reload recommendations as graph has changed
+                    setTimeout(() => loadRecommendations(), 1000);
+                }
+            } catch (error) {
+                UI.hideLoading();
+                UI.showToast(error.message || 'Subscription failed', 'error');
+            }
+        }
+
+        // Search input handler with debounce
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            const query = e.target.value;
+
+            searchTimeout = setTimeout(() => {
+                searchServices(query, currentCategory);
+            }, 500); // Wait 500ms after user stops typing
+        });
+
+        // Category filter handlers
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                currentCategory = btn.dataset.category;
+                const query = document.getElementById('search-input').value;
+                searchServices(query, currentCategory);
+            });
+        });
+
+        // Logout
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+            await api.logout();
+            window.location.href = '/login.html';
+        });
+
+        // Initialize
+        loadRecommendations();
+        searchServices(); // Load all services initially
+    </script>
+</body>
+
+</html>

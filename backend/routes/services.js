@@ -3,11 +3,12 @@ const Service = require('../models/Service');
 const { authenticate } = require('../middleware/auth');
 const { getElasticsearchClient } = require('../config/elasticsearch');
 const { getNeo4jSession } = require('../config/neo4j');
+const { validate, searchServicesSchema } = require('../middleware/validation');
 
 const router = express.Router();
 
 // Search services
-router.get('/search', authenticate, async (req, res) => {
+router.get('/search', authenticate, validate(searchServicesSchema, 'query'), async (req, res) => {
   try {
     const { q, category, minRating, maxPrice, page = 1, limit = 20 } = req.query;
 
@@ -16,7 +17,7 @@ router.get('/search', authenticate, async (req, res) => {
     if (q) {
       // Use Elasticsearch for full-text search
       const esClient = getElasticsearchClient();
-      
+
       try {
         const result = await esClient.search({
           index: 'services',
@@ -58,8 +59,8 @@ router.get('/search', authenticate, async (req, res) => {
           ...(minRating && { 'rating.average': { $gte: parseFloat(minRating) } }),
           ...(maxPrice && { 'pricing.amount': { $lte: parseFloat(maxPrice) } })
         })
-        .limit(parseInt(limit))
-        .skip((page - 1) * limit);
+          .limit(parseInt(limit))
+          .skip((page - 1) * limit);
       }
 
     } else {
@@ -149,23 +150,30 @@ router.get('/recommendations/personalized', authenticate, async (req, res) => {
       const recommendedIds = result.records.map(record => record.get('serviceId'));
 
       let services;
+      let algorithm = 'top-rated';
+
       if (recommendedIds.length > 0) {
-        services = await Service.find({ 
+        services = await Service.find({
           serviceId: { $in: recommendedIds },
-          isActive: true 
+          isActive: true
         });
-      } else {
-        // Fallback: return top-rated services
-        services = await Service.find({ isActive: true })
-          .sort({ 'rating.average': -1 })
-          .limit(10);
+        algorithm = 'collaborative-filtering';
+      }
+
+      // If no graph recommendations or not enough, add top-rated services
+      if (!services || services.length < 3) {
+        const topRated = await Service.find({ isActive: true })
+          .sort({ 'rating.average': -1, 'stats.subscribers': -1 })
+          .limit(6);
+        services = services && services.length > 0 ? [...services, ...topRated].slice(0, 6) : topRated;
       }
 
       res.json({
         success: true,
         count: services.length,
         data: services,
-        algorithm: recommendedIds.length > 0 ? 'collaborative-filtering' : 'top-rated'
+        algorithm: algorithm,
+        note: algorithm === 'top-rated' ? 'Showing top-rated services' : 'Personalized based on similar users'
       });
 
     } finally {
@@ -174,11 +182,27 @@ router.get('/recommendations/personalized', authenticate, async (req, res) => {
 
   } catch (error) {
     console.error('Get recommendations error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching recommendations',
-      error: error.message
-    });
+
+    // Even on error, return top-rated services so frontend always has data
+    try {
+      const services = await Service.find({ isActive: true })
+        .sort({ 'rating.average': -1 })
+        .limit(6);
+
+      res.json({
+        success: true,
+        count: services.length,
+        data: services,
+        algorithm: 'fallback-top-rated',
+        note: 'Showing popular services'
+      });
+    } catch (fallbackError) {
+      res.status(500).json({
+        success: false,
+        message: 'Error fetching recommendations',
+        error: error.message
+      });
+    }
   }
 });
 
@@ -206,9 +230,9 @@ router.post('/:serviceId/subscribe', authenticate, async (req, res) => {
         MERGE (s:Service {serviceId: $serviceId})
         MERGE (u)-[r:SUBSCRIBED_TO {timestamp: datetime()}]->(s)
         RETURN r
-      `, { 
-        userId: userId.toString(), 
-        serviceId 
+      `, {
+        userId: userId.toString(),
+        serviceId
       });
 
       // Update service stats
@@ -240,7 +264,7 @@ router.post('/:serviceId/subscribe', authenticate, async (req, res) => {
 router.get('/categories/list', authenticate, async (req, res) => {
   try {
     const categories = await Service.distinct('category', { isActive: true });
-    
+
     const categoriesWithCount = await Promise.all(
       categories.map(async (category) => {
         const count = await Service.countDocuments({ category, isActive: true });

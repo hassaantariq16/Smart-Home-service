@@ -28,7 +28,7 @@ router.get('/devices/:deviceId', authenticate, async (req, res) => {
     // Calculate date range
     let startDate;
     const endDate = new Date();
-    
+
     switch (period) {
       case '24h':
         startDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -43,98 +43,80 @@ router.get('/devices/:deviceId', authenticate, async (req, res) => {
         startDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
     }
 
-    // Query Cassandra for analytics data
+    // Query Cassandra - need to query each date individually (partition key requirement)
     const cassandra = getCassandraClient();
-    
-    const query = `
-      SELECT date, timestamp, temperature, humidity, power_consumption
-      FROM device_readings
-      WHERE device_id = ? AND date >= ? AND date <= ?
-      LIMIT 1000
-    `;
 
-    const result = await cassandra.execute(query, [
-      deviceId,
-      startDate.toISOString().split('T')[0],
-      endDate.toISOString().split('T')[0]
-    ], { prepare: true });
+    // Generate dates to query
+    const dates = [];
+    const current = new Date(startDate);
+    while (current <= endDate) {
+      dates.push(current.toISOString().split('T')[0]);
+      current.setDate(current.getDate() + 1);
+    }
 
-    const readings = result.rows;
+    // Query each date and combine results
+    let allReadings = [];
+    for (const date of dates) {
+      const query = `
+        SELECT date, timestamp, temperature, humidity, power_consumption, status
+        FROM device_readings
+        WHERE device_id = ? AND date = ?
+      `;
 
-    // Calculate analytics
-    const analytics = {
-      deviceId,
-      period,
-      totalReadings: readings.length,
-      temperature: {
-        avg: 0,
-        min: Infinity,
-        max: -Infinity,
-        current: null
-      },
-      humidity: {
-        avg: 0,
-        min: Infinity,
-        max: -Infinity,
-        current: null
-      },
-      powerConsumption: {
-        total: 0,
-        avg: 0,
-        peak: 0
-      },
-      timeline: []
-    };
-
-    let tempSum = 0, tempCount = 0;
-    let humSum = 0, humCount = 0;
-    let powerSum = 0, powerCount = 0;
-
-    readings.forEach(row => {
-      if (row.temperature !== null) {
-        tempSum += row.temperature;
-        tempCount++;
-        analytics.temperature.min = Math.min(analytics.temperature.min, row.temperature);
-        analytics.temperature.max = Math.max(analytics.temperature.max, row.temperature);
-        analytics.temperature.current = row.temperature;
+      try {
+        const result = await cassandra.execute(query, [deviceId, date], { prepare: true });
+        allReadings.push(...result.rows);
+      } catch (dateError) {
+        console.log(`No data for ${deviceId} on ${date}`);
       }
+    }
 
-      if (row.humidity !== null) {
-        humSum += row.humidity;
-        humCount++;
-        analytics.humidity.min = Math.min(analytics.humidity.min, row.humidity);
-        analytics.humidity.max = Math.max(analytics.humidity.max, row.humidity);
-        analytics.humidity.current = row.humidity;
-      }
+    // Sort by timestamp and limit
+    allReadings.sort((a, b) => b.timestamp - a.timestamp);
+    const limit = parseInt(req.query.limit) || 1000;
+    const readings = allReadings.slice(0, limit);
 
-      if (row.power_consumption !== null) {
-        powerSum += row.power_consumption;
-        powerCount++;
-        analytics.powerConsumption.peak = Math.max(analytics.powerConsumption.peak, row.power_consumption);
-      }
+    // Format data for frontend
+    const data = readings.map(row => ({
+      timestamp: row.timestamp,
+      temperature: row.temperature,
+      humidity: row.humidity,
+      power: row.power_consumption,  // Map power_consumption to power
+      status: row.status
+    }));
 
-      analytics.timeline.push({
-        timestamp: row.timestamp,
-        temperature: row.temperature,
-        humidity: row.humidity,
-        power: row.power_consumption
-      });
+    // Calculate analytics from the data
+    let tempSum = 0, humSum = 0, powerSum = 0;
+    let tempCount = 0, humCount = 0, powerCount = 0;
+
+    data.forEach(r => {
+      if (r.temperature != null) { tempSum += r.temperature; tempCount++; }
+      if (r.humidity != null) { humSum += r.humidity; humCount++; }
+      if (r.power != null) { powerSum += r.power; powerCount++; }
     });
 
-    analytics.temperature.avg = tempCount > 0 ? tempSum / tempCount : 0;
-    analytics.humidity.avg = humCount > 0 ? humSum / humCount : 0;
-    analytics.powerConsumption.avg = powerCount > 0 ? powerSum / powerCount : 0;
-    analytics.powerConsumption.total = powerSum;
-
-    // Reset infinity values
-    if (analytics.temperature.min === Infinity) analytics.temperature.min = 0;
-    if (analytics.temperature.max === -Infinity) analytics.temperature.max = 0;
-    if (analytics.humidity.min === Infinity) analytics.humidity.min = 0;
-    if (analytics.humidity.max === -Infinity) analytics.humidity.max = 0;
+    const responseData = {
+      deviceId,
+      period,
+      totalReadings: data.length,
+      temperature: {
+        avg: tempCount > 0 ? tempSum / tempCount : 0,
+        data: data.map(r => ({ timestamp: r.timestamp, value: r.temperature })).filter(d => d.value != null)
+      },
+      humidity: {
+        avg: humCount > 0 ? humSum / humCount : 0,
+        data: data.map(r => ({ timestamp: r.timestamp, value: r.humidity })).filter(d => d.value != null)
+      },
+      powerConsumption: {
+        total: powerSum,
+        avg: powerCount > 0 ? powerSum / powerCount : 0,
+        data: data.map(r => ({ timestamp: r.timestamp, value: r.power })).filter(d => d.value != null)
+      }
+    };
 
     res.json({
       success: true,
-      data: analytics
+      data: responseData
     });
 
   } catch (error) {
@@ -156,9 +138,9 @@ router.get('/dashboard/stats', authenticate, async (req, res) => {
     const user = await User.findById(userId).select('stats');
 
     // Get device count
-    const deviceCount = await Device.countDocuments({ 
-      userId, 
-      isActive: true 
+    const deviceCount = await Device.countDocuments({
+      userId,
+      isActive: true
     });
 
     // Get online devices
@@ -195,7 +177,7 @@ router.get('/activity/recent', authenticate, async (req, res) => {
 
     // Query Cassandra for recent system logs
     const cassandra = getCassandraClient();
-    
+
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 

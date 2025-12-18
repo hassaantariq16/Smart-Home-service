@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - Smart Home Platform</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/layout.css">
+</head>
+
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">🏠</div>
+            <h3>Smart Home</h3>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="dashboard.html" class="nav-item">
+                <span class="nav-icon">📊</span><span>Dashboard</span>
+            </a>
+            <a href="devices.html" class="nav-item">
+                <span class="nav-icon">💡</span><span>Devices</span>
+            </a>
+            <a href="services.html" class="nav-item">
+                <span class="nav-icon">🛍️</span><span>Services</span>
+            </a>
+            <a href="analytics.html" class="nav-item">
+                <span class="nav-icon">📈</span><span>Analytics</span>
+            </a>
+            <a href="profile.html" class="nav-item active">
+                <span class="nav-icon">👤</span><span>Profile</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <button id="logout-btn" class="btn btn-secondary" style="width: 100%;">
+                <span>🚪</span> Logout
+            </button>
+        </div>
+    </aside>
+
+    <div class="main-content">
+        <header class="topbar">
+            <div class="topbar-left">
+                <h1>My Profile</h1>
+                <div class="breadcrumb">
+                    <span class="text-muted">Home</span>
+                    <span class="text-muted">/</span>
+                    <span>Profile</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="content-area">
+            <!-- Database Indicator -->
+            <div class="db-badge"
+                style="background: #47A24820; color: #47A248; border: 1px solid #47A24840; margin-bottom: var(--space-6);">
+                🍃 MongoDB - User profile data with embedded documents
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-8);">
+                <!-- Profile Info -->
+                <div class="glass-card">
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-6);">
+                        <h2>Profile Information</h2>
+                        <button id="edit-btn" class="btn btn-primary btn-sm">Edit</button>
+                    </div>
+
+                    <form id="profile-form">
+                        <div class="form-group">
+                            <label class="form-label">First Name</label>
+                            <input type="text" id="firstName" class="form-input" disabled>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Last Name</label>
+                            <input type="text" id="lastName" class="form-input" disabled>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input type="email" id="email" class="form-input" disabled>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Phone</label>
+                            <input type="tel" id="phone" class="form-input" disabled>
+                        </div>
+
+                        <div id="save-buttons" style="display: none; gap: var(--space-3); margin-top: var(--space-6);">
+                            <button type="submit" class="btn btn-primary" style="flex: 1;">Save Changes</button>
+                            <button type="button" id="cancel-btn" class="btn btn-secondary"
+                                style="flex: 1;">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Subscription Status -->
+                <div class="glass-card">
+                    <h2 style="margin-bottom: var(--space-6);">Subscription</h2>
+
+                    <div style="text-align: center; margin-bottom: var(--space-6);">
+                        <div
+                            style="width: 100px; height: 100px; background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light)); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-4); font-size: var(--text-3xl);">
+                            👑
+                        </div>
+                        <h3 id="subscription-plan" style="margin-bottom: var(--space-2);">Premium Plan</h3>
+                        <p class="text-muted" id="subscription-dates">Active until Dec 31, 2026</p>
+                    </div>
+
+                    <div
+                        style="background: rgba(99,102,241,0.1); padding: var(--space-4); border-radius: var(--radius-lg); margin-bottom: var(--space-4);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span class="text-secondary">Auto-renewal</span>
+                            <span class="status-badge status-online">Enabled</span>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-ghost" style="width: 100%;">Manage Subscription</button>
+                </div>
+            </div>
+
+            <!-- Preferences -->
+            <div class="glass-card" style="margin-top: var(--space-8);">
+                <h2 style="margin-bottom: var(--space-6);">Preferences</h2>
+
+                <div style="display: grid; gap: var(--space-4);">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-4); background: var(--color-surface); border-radius: var(--radius-lg);">
+                        <div>
+                            <div style="font-weight: 600; margin-bottom: var(--space-1);">Email Notifications</div>
+                            <div class="text-muted" style="font-size: var(--text-sm);">Receive email alerts for device
+                                events</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="notifications" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-4); background: var(--color-surface); border-radius: var(--radius-lg);">
+                        <div>
+                            <div style="font-weight: 600; margin-bottom: var(--space-1);">Dark Theme</div>
+                            <div class="text-muted" style="font-size: var(--text-sm);">Use dark mode interface
+                                (currently active)</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="dark-theme" checked disabled>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-4); background: var(--color-surface); border-radius: var(--radius-lg);">
+                        <div>
+                            <div style="font-weight: 600; margin-bottom: var(--space-1);">Language</div>
+                            <div class="text-muted" style="font-size: var(--text-sm);">Interface language</div>
+                        </div>
+                        <select class="form-select" style="width: auto;">
+                            <option value="en" selected>English</option>
+                            <option value="es">Spanish</option>
+                            <option value="fr">French</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Overview -->
+            <div class="stats-grid" style="margin-top: var(--space-8);">
+                <div class="stat-card">
+                    <div class="stat-value" id="user-devices">0</div>
+                    <div class="stat-label">Total Devices</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-value" id="user-services">0</div>
+                    <div class="stat-label">Active Services</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-value" id="user-energy">0 kWh</div>
+                    <div class="stat-label">Energy Saved</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-value" id="user-savings">$0</div>
+                    <div class="stat-label">Cost Savings</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        /* Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 28px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            transition: .3s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 3px;
+            background-color: var(--color-text-tertiary);
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: var(--color-primary);
+            border-color: var(--color-primary);
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(22px);
+            background-color: white;
+        }
+
+        input:disabled+.slider {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 968px) {
+            .content-area>div:first-of-type {
+                grid-template-columns: 1fr !important;
+            }
+        }
+    </style>
+
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/ui.js"></script>
+
+    <script>
+        let isEditing = false;
+        let originalData = {};
+
+        async function loadProfile() {
+            try {
+                const response = await api.getProfile();
+
+                if (response.success && response.data) {
+                    const profile = response.data;
+
+                    // Store original data
+                    originalData = {
+                        firstName: profile.firstName,
+                        lastName: profile.lastName,
+                        email: profile.email,
+                        phone: profile.phone
+                    };
+
+                    // Fill form
+                    document.getElementById('firstName').value = profile.firstName || '';
+                    document.getElementById('lastName').value = profile.lastName || '';
+                    document.getElementById('email').value = profile.email || '';
+                    document.getElementById('phone').value = profile.phone || '';
+
+                    // Update subscription info
+                    if (profile.subscription) {
+                        document.getElementById('subscription-plan').textContent =
+                            `${profile.subscription.plan.charAt(0).toUpperCase() + profile.subscription.plan.slice(1)} Plan`;
+                    }
+
+                    // Update stats
+                    if (profile.stats) {
+                        document.getElementById('user-devices').textContent = profile.stats.totalDevices || 0;
+                        document.getElementById('user-services').textContent = profile.stats.totalServices || 0;
+                        document.getElementById('user-energy').textContent = `${Math.floor(profile.stats.energySaved || 0)} kWh`;
+                        document.getElementById('user-savings').textContent = `$${(profile.stats.costSavings || 0).toFixed(2)}`;
+                    }
+
+                    // Update preferences
+                    if (profile.profile?.preferences) {
+                        document.getElementById('notifications').checked = profile.profile.preferences.notifications !== false;
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load profile:', error);
+                UI.showToast('Failed to load profile', 'error');
+            }
+        }
+
+        // Edit button
+        document.getElementById('edit-btn').addEventListener('click', () => {
+            isEditing = true;
+            document.querySelectorAll('#profile-form input:not([type="email"])').forEach(input => {
+                input.disabled = false;
+            });
+            document.getElementById('save-buttons').style.display = 'flex';
+            document.getElementById('edit-btn').style.display = 'none';
+        });
+
+        // Cancel button
+        document.getElementById('cancel-btn').addEventListener('click', () => {
+            isEditing = false;
+            document.getElementById('firstName').value = originalData.firstName;
+            document.getElementById('lastName').value = originalData.lastName;
+            document.getElementById('phone').value = originalData.phone;
+
+            document.querySelectorAll('#profile-form input').forEach(input => {
+                input.disabled = true;
+            });
+            document.getElementById('save-buttons').style.display = 'none';
+            document.getElementById('edit-btn').style.display = 'block';
+        });
+
+        // Form submit
+        document.getElementById('profile-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const updatedData = {
+                firstName: document.getElementById('firstName').value,
+                lastName: document.getElementById('lastName').value,
+                phone: document.getElementById('phone').value
+            };
+
+            try {
+                UI.showLoading('Updating profile...');
+
+                const response = await api.updateProfile(updatedData);
+
+                UI.hideLoading();
+
+                if (response.success) {
+                    UI.showToast('Profile updated successfully!', 'success');
+
+                    // Update auth storage
+                    const updatedUser = { ...auth.getCurrentUser(), ...updatedData };
+                    auth.updateUser(updatedUser);
+
+                    // Reset form
+                    originalData = updatedData;
+                    document.querySelectorAll('#profile-form input').forEach(input => {
+                        input.disabled = true;
+                    });
+                    document.getElementById('save-buttons').style.display = 'none';
+                    document.getElementById('edit-btn').style.display = 'block';
+                }
+            } catch (error) {
+                UI.hideLoading();
+                UI.showToast(error.message || 'Failed to update profile', 'error');
+            }
+        });
+
+        // Logout
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+            await api.logout();
+            window.location.href = '/login.html';
+        });
+
+        // Initialize
+        loadProfile();
+    </script>
+</body>
+
+</html>

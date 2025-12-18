@@ -5,6 +5,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
 require('dotenv').config();
 
 // Database connections
@@ -31,7 +32,19 @@ const io = socketIo(server, {
 });
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdn.socket.io"],
+      scriptSrcAttr: ["'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", "https://cdn.jsdelivr.net", "ws://localhost:3000", "http://localhost:3000"]
+    }
+  }
+}));
 app.use(cors({
   origin: '*',
   credentials: true
@@ -44,12 +57,22 @@ app.use(morgan('dev'));
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
-  message: 'Too many requests from this IP, please try again later.'
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      message: 'Too many requests from this IP, please try again later.'
+    });
+  }
 });
 app.use('/api/', limiter);
 
 // Make io accessible to routes
 app.set('io', io);
+
+// Serve static frontend files
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -110,14 +133,16 @@ async function startServer() {
   try {
     console.log('🚀 Starting Smart Services Platform...\n');
 
-    // Connect to all databases
+    // Connect to critical databases (MongoDB, Redis)
     await connectMongoDB();
     await connectRedis();
-    await connectCassandra();
-    await connectNeo4j();
-    await connectElasticsearch();
 
-    console.log('\n✅ All databases connected successfully!\n');
+    // Try connecting to optional databases (non-blocking)
+    connectCassandra().catch(err => console.log('⚠️  Cassandra will connect later:', err.message));
+    connectNeo4j().catch(err => console.log('⚠️  Neo4j will connect later:', err.message));
+    connectElasticsearch().catch(err => console.log('⚠️  Elasticsearch will connect later:', err.message));
+
+    console.log('\n✅ Core databases connected! Starting server...\n');
 
     // Start server
     const PORT = process.env.PORT || 3000;

@@ -1,7 +1,7 @@
-# Smart Services Platform - NoSQL Database Project
+# 🏠 Smart Home Management Platform
 
 ## 📋 Project Overview
-A large-scale Smart Services Platform integrating user profiles, real-time device data, location tracking, logs, analytics, and recommendation services using NoSQL databases.
+An advanced Smart Home Management Platform with real-time device control, automation, energy monitoring, and intelligent recommendations powered by 5 NoSQL databases.
 
 ## 👥 Project Information
 - **Course**: Advanced Database Systems

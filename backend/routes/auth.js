@@ -3,11 +3,12 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { getRedisClient } = require('../config/redis');
+const { validate, registerSchema, loginSchema } = require('../middleware/validation');
 
 const router = express.Router();
 
 // Register new user
-router.post('/register', async (req, res) => {
+router.post('/register', validate(registerSchema), async (req, res) => {
   try {
     const { email, password, firstName, lastName, phone } = req.body;
 
@@ -87,7 +88,7 @@ router.post('/register', async (req, res) => {
 });
 
 // Login user
-router.post('/login', async (req, res) => {
+router.post('/login', validate(loginSchema), async (req, res) => {
   try {
     const { email, password } = req.body;
 
